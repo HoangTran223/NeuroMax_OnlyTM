@@ -8,9 +8,12 @@ import logging
 import os
 import scipy
 
+# Thêm
+from SAM_function.FSAM import FSAM
+from SAM_function.SAM import SAM
 
 class BasicTrainer:
-    def __init__(self, model, epochs=200, learning_rate=0.002, batch_size=200, lr_scheduler=None, lr_step_size=125, log_interval=5):
+    def __init__(self, model, epochs=200, learning_rate=0.002, batch_size=200, lr_scheduler=None, lr_step_size=125, log_interval=5, rho=0.05, sigma=1, lmbda=0.9, device = 'cuda', acc_step = 8):
         self.model = model
         self.epochs = epochs
         self.learning_rate = learning_rate
@@ -19,16 +22,38 @@ class BasicTrainer:
         self.lr_step_size = lr_step_size
         self.log_interval = log_interval
 
+        # Thêm
+        self.rho = rho 
+        self.sigma = sigma
+        self.lmbda = lmbda
+        self.device = device
+        self.acc_step = acc_step
+
         self.logger = logging.getLogger('main')
 
-    def make_optimizer(self,):
+    def make_sam_optimizer(self,):
+        base_optimizer = torch.optim.SGD
+        # FSAM
+        optimizer = FSAM(
+            self.model.parameters(),
+            base_optimizer,
+            device=self.device,
+            lr=self.learning_rate,
+            rho=self.rho,
+            sigma=self.sigma,
+            lmbda=self.lmbda) 
+
+        return optimizer
+
+
+    def make_adam_optimizer(self):
         args_dict = {
             'params': self.model.parameters(),
             'lr': self.learning_rate,
         }
-
         optimizer = torch.optim.Adam(**args_dict)
         return optimizer
+
 
     def make_lr_scheduler(self, optimizer):
         if self.lr_scheduler == "StepLR":
@@ -46,7 +71,10 @@ class BasicTrainer:
         return top_words, train_theta
 
     def train(self, dataset_handler, verbose=False):
-        optimizer = self.make_optimizer()
+        # optimizer = self.make_optimizer()
+        accumulation_steps = self.acc_step
+        adam_optimizer = self.make_adam_optimizer()
+        sam_optimizer = self.make_sam_optimizer()  
 
         if self.lr_scheduler:
             print("===>using lr_scheduler")
@@ -59,15 +87,41 @@ class BasicTrainer:
             self.model.train()
             loss_rst_dict = defaultdict(float)
 
-            for batch_data in dataset_handler.train_dataloader:
+            # for batch_data in dataset_handler.train_dataloader:
+            for batch_idx, batch_data in enumerate(dataset_handler.train_dataloader):
 
                 rst_dict = self.model(batch_data, epoch_id=epoch)
                 batch_loss = rst_dict['loss']
-
-                optimizer.zero_grad()
                 batch_loss.backward()
+
+                if (batch_idx + 1) % accumulation_steps == 0:
+
+                    sam_optimizer.first_step(zero_grad=True)
+
+                    rst_dict_adv = self.model(batch_data, epoch_id=epoch)
+                    batch_loss_adv = rst_dict_adv['loss'] / accumulation_steps
+                    batch_loss_adv.backward()
+
+                    sam_optimizer.second_step(zero_grad=True)
+                
+                elif (batch_idx + 1) % accumulation_steps != 0 and (batch_idx + 1) == len(dataset_handler.train_dataloader):
+
+                    sam_optimizer.first_step(zero_grad=True)
+                    rst_dict_adv = self.model(batch_data, epoch_id=epoch)
+                    batch_loss_adv = rst_dict_adv['loss'] / accumulation_steps
+                    batch_loss_adv.backward()
+
+                    sam_optimizer.second_step(zero_grad=True)
+                
+                else:
+                    adam_optimizer.step()
+                    adam_optimizer.zero_grad()
+
+                # batch_loss.backward()
+                # optimizer.zero_grad()
+                # batch_loss.backward()
                 # torch.nn.utils.clip_grad_norm_(self.model.parameters(), True)
-                optimizer.step()
+                # optimizer.step()
 
                 for key in rst_dict:
                     try:

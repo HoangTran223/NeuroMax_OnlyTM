@@ -33,6 +33,18 @@ def add_training_argument(parser):
                         help='batch size')
     parser.add_argument('--lr', type=float, default=0.002,
                         help='learning rate')
+
+    # Thêm
+    parser.add_argument('--rho', type=float, default=0.05,
+                        help='rho')  
+    parser.add_argument('--sigma', type=float, default=1,
+                        help='sigma') 
+    parser.add_argument('--lmbda', type=float, default=0.9,
+                        help='lmbda') 
+    parser.add_argument('--acc_step', type=float, default=8,
+                        help='acc_step') 
+
+
     parser.add_argument('--device', type=str, default='cuda',
                         help='device to run the model, cuda or cpu')
     parser.add_argument('--seed', type=int, default=0, help='random seed')

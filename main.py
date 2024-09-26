@@ -60,8 +60,12 @@ if __name__ == "__main__":
                                             learning_rate=args.lr,
                                             batch_size=args.batch_size,
                                             lr_scheduler=args.lr_scheduler,
-                                            lr_step_size=args.lr_step_size)
-
+                                            lr_step_size=args.lr_step_size,
+                                            rho=args.rho,
+                                            sigma=args.sigma,
+                                            lmbda=args.lmbda,
+                                            device=args.device,
+                                            acc_step=args.acc_step)
 
     # train the model
     trainer.train(dataset)
@@ -81,6 +85,11 @@ if __name__ == "__main__":
     # argmax of train and test theta
     train_theta_argmax = train_theta.argmax(axis=1)
     test_theta_argmax = test_theta.argmax(axis=1)        
+
+
+    TD_10 = evaluations.compute_topic_diversity(
+        top_words_10, _type="TD")
+    print(f"TD_10: {TD_10:.5f}")
 
     TD_15 = evaluations.compute_topic_diversity(
         top_words_15, _type="TD")
