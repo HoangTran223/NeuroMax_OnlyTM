@@ -87,12 +87,29 @@ class BasicTrainer:
             self.model.train()
             loss_rst_dict = defaultdict(float)
 
+            for batch_idx, batch_data in enumerate(dataset_handler.train_dataloader):
+
+                rst_dict = self.model(batch_data, epoch_id=epoch)
+
+                batch_loss_tm = rst_dict['loss_TM']
+                if batch_loss_tm.requires_grad:  # Kiểm tra nếu yêu cầu gradient
+                    batch_loss_tm.backward(retain_graph=True)
+                else:
+                    print("Warning: batch_loss_tm does not require grad")
+                
+                adam_optimizer.step()
+                adam_optimizer.zero_grad()
+
+
             # for batch_data in dataset_handler.train_dataloader:
             for batch_idx, batch_data in enumerate(dataset_handler.train_dataloader):
 
                 rst_dict = self.model(batch_data, epoch_id=epoch)
                 batch_loss = rst_dict['loss']
-                batch_loss.backward()
+                if batch_loss.requires_grad:  # Kiểm tra nếu yêu cầu gradient
+                    batch_loss.backward()  
+                else:
+                    print("Warning: batch_loss does not require grad")
 
                 if (batch_idx + 1) % accumulation_steps == 0:
 
@@ -221,3 +238,77 @@ class BasicTrainer:
             np.save(os.path.join(dir_path, 'group_dist.npy'), group_dist)
 
         return word_embeddings, topic_embeddings
+
+
+
+# def train(self, dataset_handler, verbose=False):
+#         # optimizer = self.make_optimizer()
+#         accumulation_steps = self.acc_step
+#         adam_optimizer = self.make_adam_optimizer()
+#         sam_optimizer = self.make_sam_optimizer()  
+
+#         if self.lr_scheduler:
+#             print("===>using lr_scheduler")
+#             self.logger.info("===>using lr_scheduler")
+#             lr_scheduler = self.make_lr_scheduler(adam_optimizer)
+
+#         data_size = len(dataset_handler.train_dataloader.dataset)
+
+#         for epoch in tqdm(range(1, self.epochs + 1)):
+#             self.model.train()
+#             loss_rst_dict = defaultdict(float)
+
+#             # for batch_data in dataset_handler.train_dataloader:
+#             for batch_idx, batch_data in enumerate(dataset_handler.train_dataloader):
+
+#                 rst_dict = self.model(batch_data, epoch_id=epoch)
+#                 batch_loss = rst_dict['loss']
+#                 batch_loss.backward()
+
+#                 if (batch_idx + 1) % accumulation_steps == 0:
+
+#                     sam_optimizer.first_step(zero_grad=True)
+
+#                     rst_dict_adv = self.model(batch_data, epoch_id=epoch)
+#                     batch_loss_adv = rst_dict_adv['loss'] / accumulation_steps
+#                     batch_loss_adv.backward()
+
+#                     sam_optimizer.second_step(zero_grad=True)
+                
+#                 elif (batch_idx + 1) % accumulation_steps != 0 and (batch_idx + 1) == len(dataset_handler.train_dataloader):
+
+#                     sam_optimizer.first_step(zero_grad=True)
+#                     rst_dict_adv = self.model(batch_data, epoch_id=epoch)
+#                     batch_loss_adv = rst_dict_adv['loss'] / accumulation_steps
+#                     batch_loss_adv.backward()
+
+#                     sam_optimizer.second_step(zero_grad=True)
+                
+#                 else:
+#                     adam_optimizer.step()
+#                     adam_optimizer.zero_grad()
+
+#                 # batch_loss.backward()
+#                 # optimizer.zero_grad()
+#                 # batch_loss.backward()
+#                 # torch.nn.utils.clip_grad_norm_(self.model.parameters(), True)
+#                 # optimizer.step()
+
+#                 for key in rst_dict:
+#                     try:
+#                         loss_rst_dict[key] += rst_dict[key] * \
+#                             len(batch_data['data'])
+#                     except:
+#                         loss_rst_dict[key] += rst_dict[key] * len(batch_data)
+
+
+#             if self.lr_scheduler:
+#                 lr_scheduler.step()
+
+#             if verbose and epoch % self.log_interval == 0:
+#                 output_log = f'Epoch: {epoch:03d}'
+#                 for key in loss_rst_dict:
+#                     output_log += f' {key}: {loss_rst_dict[key] / data_size :.3f}'
+
+#                 print(output_log)
+#                 self.logger.info(output_log)
