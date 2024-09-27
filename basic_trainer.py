@@ -104,8 +104,7 @@ class BasicTrainer:
             for batch_idx, batch_data in enumerate(dataset_handler.train_dataloader):
                 rst_dict = self.model(batch_data, epoch_id=epoch)
                 batch_loss = rst_dict['loss']
-
-                adam_optimizer.zero_grad()
+                
                 batch_loss.backward()  
                 adam_optimizer.step()
 
