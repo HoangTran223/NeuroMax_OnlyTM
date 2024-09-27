@@ -62,10 +62,12 @@ if __name__ == "__main__":
                                             lr_scheduler=args.lr_scheduler,
                                             lr_step_size=args.lr_step_size,
                                             rho=args.rho,
-                                            sigma=args.sigma,
-                                            lmbda=args.lmbda,
                                             device=args.device,
-                                            acc_step=args.acc_step)
+                                            delta=args.delta,
+                                            mut = args.mut,
+                                            sigmat=args.sigmat,
+                                            k1=args.k1,
+                                            k2=args.k2)
 
     # train the model
     trainer.train(dataset)

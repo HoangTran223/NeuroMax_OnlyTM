@@ -11,9 +11,10 @@ import scipy
 # Thêm
 from SAM_function.FSAM import FSAM
 from SAM_function.SAM import SAM
+from SAM_function.LookaheadSAM import AOSAM
 
 class BasicTrainer:
-    def __init__(self, model, epochs=200, learning_rate=0.002, batch_size=200, lr_scheduler=None, lr_step_size=125, log_interval=5, rho=0.05, sigma=1, lmbda=0.9, device = 'cuda', acc_step = 8):
+    def __init__(self, model, epochs=200, learning_rate=0.002, batch_size=200, lr_scheduler=None, lr_step_size=125, log_interval=5, rho=0.05, mut = 0, sigmat = 1e-10, k1= 0.2, k2=0.4, device = 'cuda', delta=0.1):
         self.model = model
         self.epochs = epochs
         self.learning_rate = learning_rate
@@ -24,24 +25,56 @@ class BasicTrainer:
 
         # Thêm
         self.rho = rho 
-        self.sigma = sigma
-        self.lmbda = lmbda
         self.device = device
-        self.acc_step = acc_step
-
+        # self.sigma = sigma
+        # self.lmbda = lmbda
+        # self.acc_step = acc_step
+        self.mut = 0.0
+        self.sigmat = 1e-10
+        self.delta = delta
+        self.k1 = k1 
+        self.k2 = k2
+        self.optimizer = self.make_aosam_optimizer()
         self.logger = logging.getLogger('main')
 
-    def make_sam_optimizer(self,):
+
+    
+    def _grad_norm(self):
+        norm = torch.norm(
+            torch.stack([
+                ((torch.abs(p) if group["adaptive"] else 1.0) * p.grad).norm(p=2)
+                for group in self.optimizer.param_groups
+                for p in group["params"] if p.grad is not None]),
+            p=2)
+        return norm
+
+    # def make_sam_optimizer(self,):
+    #     base_optimizer = torch.optim.SGD
+    #     # FSAM
+    #     optimizer = FSAM(
+    #         self.model.parameters(),
+    #         base_optimizer,
+    #         device=self.device,
+    #         lr=self.learning_rate,
+    #         rho=self.rho,
+    #         sigma=self.sigma,
+    #         lmbda=self.lmbda) 
+
+    #     return optimizer
+
+
+    def make_aosam_optimizer(self,):
         base_optimizer = torch.optim.SGD
         # FSAM
-        optimizer = FSAM(
+        optimizer = AOSAM(
             self.model.parameters(),
             base_optimizer,
             device=self.device,
             lr=self.learning_rate,
             rho=self.rho,
-            sigma=self.sigma,
-            lmbda=self.lmbda) 
+            delta=self.delta,
+            k1=self.k1,
+            k2=self.k2) 
 
         return optimizer
 
@@ -72,9 +105,15 @@ class BasicTrainer:
 
     def train(self, dataset_handler, verbose=False):
         # optimizer = self.make_optimizer()
-        accumulation_steps = self.acc_step
+        # accumulation_steps = self.acc_step
+
+        global demsam, demadam 
+        demsam = 0
+        demadam = 0
+
         adam_optimizer = self.make_adam_optimizer()
-        sam_optimizer = self.make_sam_optimizer()  
+        aosam_optimizer = self.make_aosam_optimizer()  
+
 
         if self.lr_scheduler:
             print("===>using lr_scheduler")
@@ -83,6 +122,10 @@ class BasicTrainer:
 
         data_size = len(dataset_handler.train_dataloader.dataset)
 
+        # Thêm
+        total_batches = len(dataset_handler.train_dataloader)
+        T = self.epochs * total_batches
+
         for epoch in tqdm(range(1, self.epochs + 1)):
             self.model.train()
             loss_rst_dict = defaultdict(float)
@@ -90,30 +133,34 @@ class BasicTrainer:
             # for batch_data in dataset_handler.train_dataloader:
             for batch_idx, batch_data in enumerate(dataset_handler.train_dataloader):
 
+                t = (epoch - 1) * total_batches + batch_idx + 1
+
                 rst_dict = self.model(batch_data, epoch_id=epoch)
                 batch_loss = rst_dict['loss']
                 batch_loss.backward()
 
-                if (batch_idx + 1) % accumulation_steps == 0:
+                grad_norm = self._grad_norm()
 
-                    sam_optimizer.first_step(zero_grad=True)
-
-                    rst_dict_adv = self.model(batch_data, epoch_id=epoch)
-                    batch_loss_adv = rst_dict_adv['loss'] / accumulation_steps
-                    batch_loss_adv.backward()
-
-                    sam_optimizer.second_step(zero_grad=True)
+                # Tính mut, sigmat
+                self.mut = self.delta * self.mut + (1 - self.delta) * grad_norm.item()**2
+                self.sigmat = self.delta * self.sigmat + (1 - self.delta) * ((grad_norm.item()**2) - self.mut)**2
                 
-                elif (batch_idx + 1) % accumulation_steps != 0 and (batch_idx + 1) == len(dataset_handler.train_dataloader):
+                # Tính c_t
+                c_t = (t / T) * self.k1 + (1 - (t / T)) * self.k2
 
-                    sam_optimizer.first_step(zero_grad=True)
+                if grad_norm.item()**2 >= (self.mut + c_t * (self.sigmat**0.5)):
+
+                    demsam += 1
+                    aosam_optimizer.first_step(zero_grad=True)
+
                     rst_dict_adv = self.model(batch_data, epoch_id=epoch)
-                    batch_loss_adv = rst_dict_adv['loss'] / accumulation_steps
+                    batch_loss_adv = rst_dict_adv['loss'] 
                     batch_loss_adv.backward()
 
-                    sam_optimizer.second_step(zero_grad=True)
+                    aosam_optimizer.second_step(zero_grad=True)
                 
                 else:
+                    demadam += 1
                     adam_optimizer.step()
                     adam_optimizer.zero_grad()
 
@@ -129,6 +176,8 @@ class BasicTrainer:
                             len(batch_data['data'])
                     except:
                         loss_rst_dict[key] += rst_dict[key] * len(batch_data)
+            
+            print(f"So lan su dung AOSAM: {demsam}; so lan su dung Adam: {demadam}")
 
 
             if self.lr_scheduler:
@@ -139,6 +188,7 @@ class BasicTrainer:
                 for key in loss_rst_dict:
                     output_log += f' {key}: {loss_rst_dict[key] / data_size :.3f}'
 
+                output_log += f' | Số lần dùng AOSAM: {demsam}, Số lần dùng Adam: {demadam}'
                 print(output_log)
                 self.logger.info(output_log)
 
