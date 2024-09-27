@@ -35,8 +35,8 @@ def add_training_argument(parser):
                         help='learning rate')
 
     # Thêm
-    # parser.add_argument('--rho', type=float, default=0.05,
-    #                     help='rho')
+    parser.add_argument('--rho', type=float, default=0.05,
+                        help='rho')
     # parser.add_argument('--k1', type=float, default=0.2,
     #                     help="k1")
     # parser.add_argument('--k2', type=float, default=0.4,
