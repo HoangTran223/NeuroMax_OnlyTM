@@ -89,60 +89,26 @@ class BasicTrainer:
             for batch_idx, batch_data in enumerate(dataset_handler.train_dataloader):
 
                 rst_dict = self.model(batch_data, epoch_id=epoch)
-                
-                batch_loss_TCR = rst_dict['loss_TM']
-                if batch_loss_TCR.requires_grad:  # Kiểm tra nếu yêu cầu gradient
-                    batch_loss_TCR.backward(retain_graph=True)
-                else:
-                    print("Warning: batch_loss_TCR does not require grad")
-                
-                adam_optimizer.step()
-                adam_optimizer.zero_grad()
+                batch_loss_sam = rst_dict['loss_TM']
+
+                batch_loss_sam.backward()
+                sam_optimizer.first_step(zero_grad=True)
+
+                rst_dict_adv = self.model(batch_data, epoch_id=epoch)
+                batch_loss_sam_adv = rst_dict_adv['loss_TM']
+
+                batch_loss_adv.backward()   
+                sam_optimizer.second_step(zero_grad=True)
+
 
             for batch_idx, batch_data in enumerate(dataset_handler.train_dataloader):
-
                 rst_dict = self.model(batch_data, epoch_id=epoch)
                 batch_loss = rst_dict['loss']
 
-                if batch_loss.requires_grad:  # Kiểm tra nếu yêu cầu gradient
-                    batch_loss.backward()  
-                else:
-                    print("Warning: batch_loss does not require grad")
+                adam_optimizer.zero_grad()
+                batch_loss.backward()  
+                adam_optimizer.step()
 
-                if (batch_idx + 1) % accumulation_steps == 0:
-
-                    sam_optimizer.first_step(zero_grad=True)
-
-                    rst_dict_adv = self.model(batch_data, epoch_id=epoch)
-                    batch_loss_adv = rst_dict_adv['loss'] / accumulation_steps
-                    if batch_loss_adv.requires_grad:  
-                        batch_loss_adv.backward()   
-                    else:
-                        print("Warning: batch_loss_adv does not require grad")
-
-                    sam_optimizer.second_step(zero_grad=True)
-                
-                elif (batch_idx + 1) % accumulation_steps != 0 and (batch_idx + 1) == len(dataset_handler.train_dataloader):
-
-                    sam_optimizer.first_step(zero_grad=True)
-                    rst_dict_adv = self.model(batch_data, epoch_id=epoch)
-                    batch_loss_adv = rst_dict_adv['loss'] / accumulation_steps
-                    if batch_loss_adv.requires_grad:  
-                        batch_loss_adv.backward()  
-                    else:
-                        print("Warning: batch_loss_adv does not require grad")
-
-                    sam_optimizer.second_step(zero_grad=True)
-                
-                else:
-                    adam_optimizer.step()
-                    adam_optimizer.zero_grad()
-
-                # batch_loss.backward()
-                # optimizer.zero_grad()
-                # batch_loss.backward()
-                # torch.nn.utils.clip_grad_norm_(self.model.parameters(), True)
-                # optimizer.step()
 
                 for key in rst_dict:
                     try:
