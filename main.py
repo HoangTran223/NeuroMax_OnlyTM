@@ -63,11 +63,9 @@ if __name__ == "__main__":
                                             lr_step_size=args.lr_step_size,
                                             rho=args.rho,
                                             device=args.device,
-                                            delta=args.delta,
-                                            mut = args.mut,
-                                            sigmat=args.sigmat,
-                                            k1=args.k1,
-                                            k2=args.k2)
+                                            sigma=args.sigma,
+                                            lmbda=args.lmbda)
+
 
     # train the model
     trainer.train(dataset)

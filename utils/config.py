@@ -35,25 +35,25 @@ def add_training_argument(parser):
                         help='learning rate')
 
     # Thêm
-    parser.add_argument('--rho', type=float, default=0.05,
-                        help='rho')
-    parser.add_argument('--k1', type=float, default=0.2,
-                        help="k1")
-    parser.add_argument('--k2', type=float, default=0.4,
-                        help="k2")
-    parser.add_argument('--delta', type=float, default=0.3,
-                        help="delta_AOSAM")
-    parser.add_argument('--mut', type=float, default=0.0,
-                        help="mu_t_AOSAM")
-    parser.add_argument('--sigmat', type=float, default=1e-10,
-                        help="sigma_t_AOSAM")  
+    # parser.add_argument('--rho', type=float, default=0.05,
+    #                     help='rho')
+    # parser.add_argument('--k1', type=float, default=0.2,
+    #                     help="k1")
+    # parser.add_argument('--k2', type=float, default=0.4,
+    #                     help="k2")
+    # parser.add_argument('--delta', type=float, default=0.3,
+    #                     help="delta_AOSAM")
+    # parser.add_argument('--mut', type=float, default=0.0,
+    #                     help="mu_t_AOSAM")
+    # parser.add_argument('--sigmat', type=float, default=1e-10,
+    #                     help="sigma_t_AOSAM")  
                         
-    # parser.add_argument('--sigma', type=float, default=1,
-    #                     help='sigma') 
-    # parser.add_argument('--lmbda', type=float, default=0.9,
-    #                     help='lmbda') 
-    # parser.add_argument('--acc_step', type=float, default=8,
-    #                     help='acc_step') 
+    parser.add_argument('--sigma', type=float, default=1,
+                        help='sigma') 
+    parser.add_argument('--lmbda', type=float, default=0.9,
+                        help='lmbda') 
+    parser.add_argument('--acc_step', type=float, default=8,
+                        help='acc_step') 
 
 
     parser.add_argument('--device', type=str, default='cuda',
