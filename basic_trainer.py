@@ -91,31 +91,19 @@ class BasicTrainer:
                 rst_dict = self.model(batch_data, epoch_id=epoch)
                 batch_loss_sam = rst_dict['loss_TM']
 
-                if batch_loss_sam.requires_grad:  # Kiểm tra nếu yêu cầu gradient
-                    batch_loss_sam.backward(retain_graph=True)
-                else:
-                    print("Warning: batch_loss_sam does not require grad")
-
+                batch_loss_sam.backward()
                 sam_optimizer.first_step(zero_grad=True)
 
                 rst_dict_adv = self.model(batch_data, epoch_id=epoch)
                 batch_loss_sam_adv = rst_dict_adv['loss_TM']
 
-                if batch_loss_sam_adv.requires_grad:  
-                    batch_loss_sam_adv.backward()   
-                else:
-                    print("Warning: bath_loss_sam_adv does not require grad") 
+                batch_loss_sam_adv.backward()   
                 sam_optimizer.second_step(zero_grad=True)
 
-
-            for batch_idx, batch_data in enumerate(dataset_handler.train_dataloader):
-                rst_dict = self.model(batch_data, epoch_id=epoch)
-                batch_loss = rst_dict['loss']
+                rst_dict_total = self.model(batch_data, epoch_id=epoch)
+                batch_loss = rst_dict_total['loss']
                 
-                if batch_loss.requires_grad:  # Kiểm tra nếu yêu cầu gradient
-                    batch_loss.backward()  
-                else:
-                    print("Warning: batch_loss does not require grad")
+                batch_loss.backward()  
                 adam_optimizer.step()
                 adam_optimizer.zero_grad()
 
@@ -292,3 +280,37 @@ class BasicTrainer:
 
 #                 print(output_log)
 #                 self.logger.info(output_log)
+
+
+# for batch_idx, batch_data in enumerate(dataset_handler.train_dataloader):
+
+#                 rst_dict = self.model(batch_data, epoch_id=epoch)
+#                 batch_loss_sam = rst_dict['loss_TM']
+
+#                 if batch_loss_sam.requires_grad:  # Kiểm tra nếu yêu cầu gradient
+#                     batch_loss_sam.backward(retain_graph=True)
+#                 else:
+#                     print("Warning: batch_loss_sam does not require grad")
+
+#                 sam_optimizer.first_step(zero_grad=True)
+
+#                 rst_dict_adv = self.model(batch_data, epoch_id=epoch)
+#                 batch_loss_sam_adv = rst_dict_adv['loss_TM']
+
+#                 if batch_loss_sam_adv.requires_grad:  
+#                     batch_loss_sam_adv.backward()   
+#                 else:
+#                     print("Warning: bath_loss_sam_adv does not require grad") 
+#                 sam_optimizer.second_step(zero_grad=True)
+
+
+#             for batch_idx, batch_data in enumerate(dataset_handler.train_dataloader):
+#                 rst_dict = self.model(batch_data, epoch_id=epoch)
+#                 batch_loss = rst_dict['loss']
+                
+#                 if batch_loss.requires_grad:  # Kiểm tra nếu yêu cầu gradient
+#                     batch_loss.backward()  
+#                 else:
+#                     print("Warning: batch_loss does not require grad")
+#                 adam_optimizer.step()
+#                 adam_optimizer.zero_grad()
