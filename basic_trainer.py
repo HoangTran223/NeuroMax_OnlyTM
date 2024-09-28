@@ -101,8 +101,8 @@ class BasicTrainer:
                 rst_dict_adv = self.model(batch_data, epoch_id=epoch)
                 batch_loss_sam_adv = rst_dict_adv['loss_TM']
 
-                if bath_loss_sam_adv.requires_grad:  
-                    bath_loss_sam_adv.backward()   
+                if batch_loss_sam_adv.requires_grad:  
+                    batch_loss_sam_adv.backward()   
                 else:
                     print("Warning: bath_loss_sam_adv does not require grad") 
                 sam_optimizer.second_step(zero_grad=True)
