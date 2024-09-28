@@ -91,7 +91,8 @@ class BasicTrainer:
                 rst_dict = self.model(batch_data, epoch_id=epoch)
                 batch_loss_sam = rst_dict['loss_TM']
 
-                batch_loss_sam.backward()
+                adam_optimizer.zero_grad()              # Thêm
+                batch_loss_sam.backward(retain_graph=True)
                 sam_optimizer.first_step(zero_grad=True)
 
                 rst_dict_adv = self.model(batch_data, epoch_id=epoch)
