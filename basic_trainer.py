@@ -90,7 +90,7 @@ class BasicTrainer:
 
                 rst_dict_total = self.model(batch_data, epoch_id=epoch)
                 batch_loss = rst_dict_total['loss']
-                
+
                 adam_optimizer.zero_grad()
                 batch_loss.backward()
                 adam_optimizer.step()
@@ -249,30 +249,30 @@ class BasicTrainer:
 
 
 
-for epoch in tqdm(range(1, self.epochs + 1)):
-            self.model.train()
-            loss_rst_dict = defaultdict(float)
+# for epoch in tqdm(range(1, self.epochs + 1)):
+#             self.model.train()
+#             loss_rst_dict = defaultdict(float)
 
-            for batch_idx, batch_data in enumerate(dataset_handler.train_dataloader):
+#             for batch_idx, batch_data in enumerate(dataset_handler.train_dataloader):
 
-                rst_dict = self.model(batch_data, epoch_id=epoch)
-                batch_loss_sam = rst_dict['loss_TM']
+#                 rst_dict = self.model(batch_data, epoch_id=epoch)
+#                 batch_loss_sam = rst_dict['loss_TM']
 
-                adam_optimizer.zero_grad()              # Thêm
-                batch_loss_sam.backward(retain_graph=True)
-                sam_optimizer.first_step(zero_grad=True)
+#                 adam_optimizer.zero_grad()              # Thêm
+#                 batch_loss_sam.backward(retain_graph=True)
+#                 sam_optimizer.first_step(zero_grad=True)
 
-                rst_dict_adv = self.model(batch_data, epoch_id=epoch)
-                batch_loss_sam_adv = rst_dict_adv['loss_TM']
+#                 rst_dict_adv = self.model(batch_data, epoch_id=epoch)
+#                 batch_loss_sam_adv = rst_dict_adv['loss_TM']
 
-                batch_loss_sam_adv.backward()   
-                sam_optimizer.second_step(zero_grad=True)
+#                 batch_loss_sam_adv.backward()   
+#                 sam_optimizer.second_step(zero_grad=True)
 
 
-                adam_optimizer.zero_grad()
-                rst_dict_total = self.model(batch_data, epoch_id=epoch)
-                batch_loss = rst_dict_total['loss']
+#                 adam_optimizer.zero_grad()
+#                 rst_dict_total = self.model(batch_data, epoch_id=epoch)
+#                 batch_loss = rst_dict_total['loss']
                 
-                batch_loss.backward()  
-                adam_optimizer.step()
-                # adam_optimizer.zero_grad()
+#                 batch_loss.backward()  
+#                 adam_optimizer.step()
+#                 # adam_optimizer.zero_grad()
