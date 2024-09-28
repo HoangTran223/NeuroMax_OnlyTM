@@ -100,12 +100,14 @@ class BasicTrainer:
                 batch_loss_sam_adv.backward()   
                 sam_optimizer.second_step(zero_grad=True)
 
+
+                adam_optimizer.zero_grad()
                 rst_dict_total = self.model(batch_data, epoch_id=epoch)
                 batch_loss = rst_dict_total['loss']
                 
                 batch_loss.backward()  
                 adam_optimizer.step()
-                adam_optimizer.zero_grad()
+                # adam_optimizer.zero_grad()
 
 
                 for key in rst_dict:
